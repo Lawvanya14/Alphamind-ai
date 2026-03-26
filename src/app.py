@@ -265,4 +265,4 @@ if analyze:
 
     with st.expander("Takeaway"):
         st.markdown(f"<div class='glass'>{result['insight']['takeaway']}</div>", unsafe_allow_html=True)
-```
+
