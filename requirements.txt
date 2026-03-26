@@ -1,0 +1,11 @@
+streamlit
+yfinance
+plotly
+pandas
+numpy
+langchain
+langgraph
+transformers
+torch
+groq
+python-dotenv
