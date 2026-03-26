@@ -1,4 +1,3 @@
-```python
 import streamlit as st
 from langgraph_flow import build_graph
 import plotly.graph_objects as go
@@ -217,4 +216,4 @@ if analyze:
     st.markdown(f"<div class='card'>{clean_output(result['insight'])}</div>", unsafe_allow_html=True)
 
     st.caption("Source: Yahoo Finance | Prices may be delayed | For educational use only")
-```
+
