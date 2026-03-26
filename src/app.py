@@ -1,3 +1,4 @@
+```python
 import streamlit as st
 from langgraph_flow import build_graph
 import plotly.graph_objects as go
@@ -6,34 +7,88 @@ import re
 
 st.set_page_config(page_title="AlphaMind AI", layout="wide")
 
-# ---------- CLEAN OUTPUT FUNCTION ----------
+# CLEAN OUTPUT 
 def clean_output(text):
     text = re.sub(r"\*\*\d+\.", "", text)
     return text.strip()
 
-# ---------- PREMIUM UI ----------
+#  GLOBAL STYLES
 st.markdown("""
 <style>
-body {
-    background: linear-gradient(135deg, #020617, #0f172a);
-    color: #e2e8f0;
+
+/*  BASE*/
+html, body, [class*="css"] {
     font-family: 'Inter', 'Segoe UI', sans-serif;
 }
 
+/* MAIN BACKGROUND */
+.main {
+    background: linear-gradient(135deg, #020617, #0f172a);
+    color: #e2e8f0;
+}
+
+/* SIDEBAR */
+section[data-testid="stSidebar"] {
+    background: linear-gradient(180deg, #020617, #0f172a);
+    padding: 20px;
+}
+
+/* Sidebar Title */
+.sidebar-title {
+    font-size: 26px;
+    font-weight: 700;
+    background: linear-gradient(90deg, #a78bfa, #38bdf8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 20px;
+}
+
+/* Labels */
+label {
+    color: #94a3b8 !important;
+    font-size: 13px !important;
+}
+
+/* Inputs */
+.stSelectbox div, .stTextInput input {
+    background-color: #020617 !important;
+    color: white !important;
+    border-radius: 10px !important;
+    border: 1px solid #334155 !important;
+}
+
+/* Button */
+.stButton button {
+    width: 100%;
+    background: linear-gradient(90deg, #6366f1, #a855f7);
+    color: white;
+    border-radius: 10px;
+    padding: 10px;
+    border: none;
+    font-weight: 600;
+}
+
+.stButton button:hover {
+    background: linear-gradient(90deg, #4f46e5, #9333ea);
+}
+
+/*  HEADER */
 .main-title {
     text-align:center;
-    font-size:40px;
+    font-size:42px;
     font-weight:700;
-    color:#c084fc;
+    background: linear-gradient(90deg, #c084fc, #38bdf8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
 
 .sub-title {
     text-align:center;
     color:#94a3b8;
-    font-size:15px;
     margin-bottom:25px;
 }
 
+/*  CARDS */
 .glass {
     background: rgba(30,41,59,0.6);
     padding:20px;
@@ -41,6 +96,7 @@ body {
     border:1px solid rgba(148,163,184,0.15);
 }
 
+/* METRICS */
 .metric-box {
     text-align:center;
     padding:16px;
@@ -48,31 +104,34 @@ body {
     background: rgba(30,41,59,0.5);
 }
 
-.buy{color:#22c55e;} .sell{color:#ef4444;} .hold{color:#facc15;}
+/* Signal Colors */
+.buy { color:#22c55e; }
+.sell { color:#ef4444; }
+.hold { color:#facc15; }
 
+/* REASONS */
 .reason-box {
     padding:12px;
     margin:6px 0;
     border-radius:10px;
     background: rgba(148,163,184,0.08);
     border-left:3px solid #c084fc;
-    transition:0.3s;
+    transition:0.2s;
 }
 
 .reason-box:hover {
-    transform: translateX(6px);
-    background: rgba(192,132,252,0.15);
+    transform: translateX(4px);
 }
+
 </style>
 """, unsafe_allow_html=True)
 
-# ---------- HEADER ----------
+
 st.markdown('<div class="main-title">AlphaMind AI</div>', unsafe_allow_html=True)
 st.markdown('<div class="sub-title">Intelligent Financial Insight System</div>', unsafe_allow_html=True)
 
-# ---------- SIDEBAR ----------
 with st.sidebar:
-    st.title("Control Panel")
+    st.markdown('<div class="sidebar-title">Control Panel</div>', unsafe_allow_html=True)
 
     assets = {
         "Stocks": [
@@ -87,18 +146,16 @@ with st.sidebar:
         "Indices": [
             "^GSPC - S&P 500","^IXIC - Nasdaq","^DJI - Dow Jones",
             "^NSEI - Nifty 50","^BSESN - Sensex"
-        ],
-        "ETFs": [
-            "SPY - S&P500 ETF","QQQ - Nasdaq ETF","GLD - Gold ETF","SLV - Silver ETF"
         ]
     }
 
     category = st.selectbox("Category", list(assets.keys()))
     selected_asset = st.selectbox("Asset", assets[category])
     custom = st.text_input("Custom Ticker")
+
     analyze = st.button("Analyze")
 
-# ---------- FORMAT OUTPUT ----------
+
 def extract(text, start, end=None):
     if end:
         pattern = rf"{start}\*\*(.*?){end}\*\*"
@@ -112,7 +169,7 @@ def format_output(result):
 
     return {
         "market": result.get("market_data", {}),
-        "prediction": clean_output(result.get("prediction", "")),  # ✅ cleaned
+        "prediction": clean_output(result.get("prediction", "")),
         "signal": result.get("signal", "HOLD"),
         "confidence": int(result.get("confidence", 70)),
         "reasons": result.get("reasons", []),
@@ -123,7 +180,7 @@ def format_output(result):
         }
     }
 
-# ---------- MAIN ----------
+
 if not analyze:
     st.info("Select asset and analyze")
 
@@ -131,14 +188,14 @@ if analyze:
 
     query = custom.strip().upper() if custom else selected_asset.split(" - ")[0]
 
-    with st.spinner("Running AI..."):
+    with st.spinner("Running analysis..."):
         graph = build_graph()
         raw = graph.invoke({"query": query})
         result = format_output(raw)
 
     market = result["market"]
 
-    # ---------- METRICS ----------
+    #  METRICS 
     st.subheader("Market Overview")
     c1, c2, c3, c4 = st.columns(4)
 
@@ -147,9 +204,7 @@ if analyze:
 
     price = market.get("price", 0)
     usd_to_inr = 83
-
-    # ✅ FIXED UNIT
-    price_display = f"$ {price} per share | ₹ {round(price*usd_to_inr,2)} per share"
+    price_display = f"$ {price} | ₹ {round(price*usd_to_inr,2)}"
 
     with c1: metric("Price", price_display)
     with c2: metric("Change", f"{market.get('change','N/A')}%")
@@ -158,11 +213,9 @@ if analyze:
         cls = "buy" if result["signal"]=="BUY" else "sell" if result["signal"]=="SELL" else "hold"
         metric("Signal", result["signal"], cls)
 
-    st.caption("Data Source: Yahoo Finance | Prices may be delayed")
-
     st.divider()
 
-    # ---------- CHART ----------
+    
     st.subheader("Price Chart")
     data = yf.download(query, period="3mo")
 
@@ -182,7 +235,7 @@ if analyze:
 
         st.plotly_chart(fig, use_container_width=True)
 
-    # ---------- PREDICTION ----------
+
     st.subheader("Prediction")
     col1, col2 = st.columns([2,1])
 
@@ -199,13 +252,10 @@ if analyze:
         )
         st.progress(conf/100)
 
-    # ---------- REASONING ----------
     st.subheader("Signal Reasoning")
     for r in result["reasons"]:
-        icon = "📉" if "down" in r.lower() else "📈"
-        st.markdown(f"<div class='reason-box'>{icon} {clean_output(r)}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='reason-box'>{clean_output(r)}</div>", unsafe_allow_html=True)
 
-    # ---------- INSIGHTS ----------
     st.subheader("AI Insights")
 
     with st.expander("Interpretation", True):
@@ -216,3 +266,4 @@ if analyze:
 
     with st.expander("Takeaway"):
         st.markdown(f"<div class='glass'>{result['insight']['takeaway']}</div>", unsafe_allow_html=True)
+```
