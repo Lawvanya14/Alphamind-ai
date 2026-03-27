@@ -4,10 +4,10 @@ import plotly.graph_objects as go
 import yfinance as yf
 import re
 
-# ---------------- PAGE CONFIG ----------------
+
 st.set_page_config(page_title="AlphaMind AI", layout="wide")
 
-# ---------------- PREMIUM UI ----------------
+
 st.markdown("""
 <style>
 body {
@@ -42,11 +42,25 @@ body {
     padding:16px;
     border-radius:14px;
     background: rgba(30,41,59,0.5);
+    transition:0.3s;
 }
 
-.buy{color:#22c55e;} 
-.sell{color:#ef4444;} 
-.hold{color:#facc15;}
+.metric-box:hover {
+    transform: translateY(-4px);
+}
+
+.buy {
+    color:#22c55e;
+    text-shadow:0 0 8px #22c55e;
+}
+.sell {
+    color:#ef4444;
+    text-shadow:0 0 8px #ef4444;
+}
+.hold {
+    color:#facc15;
+    text-shadow:0 0 8px #facc15;
+}
 
 .reason-box {
     padding:12px;
@@ -64,11 +78,9 @@ body {
 </style>
 """, unsafe_allow_html=True)
 
-# ---------------- HEADER ----------------
 st.markdown('<div class="main-title">AlphaMind AI</div>', unsafe_allow_html=True)
 st.markdown('<div class="sub-title">Intelligent Financial Insight System</div>', unsafe_allow_html=True)
 
-# ---------------- SIDEBAR ----------------
 with st.sidebar:
     st.title("Control Panel")
 
@@ -76,7 +88,9 @@ with st.sidebar:
         "Stocks": [
             "AAPL - Apple","TSLA - Tesla","NVDA - Nvidia","MSFT - Microsoft",
             "GOOGL - Google","AMZN - Amazon","META - Meta","NFLX - Netflix",
-            "RELIANCE.NS - Reliance","TCS.NS - TCS","INFY.NS - Infosys"
+            "RELIANCE.NS - Reliance","TCS.NS - TCS","INFY.NS - Infosys",
+            "HDFCBANK.NS - HDFC Bank","ICICIBANK.NS - ICICI Bank",
+            "SBIN.NS - SBI","LT.NS - Larsen & Toubro"
         ],
         "Crypto": [
             "BTC-USD - Bitcoin","ETH-USD - Ethereum","SOL-USD - Solana",
@@ -88,7 +102,9 @@ with st.sidebar:
         ],
         "ETFs": [
             "SPY - S&P500 ETF","QQQ - Nasdaq ETF",
-            "GOLDBEES.NS - Gold ETF","SILVERBEES.NS - Silver ETF"
+            "GOLDBEES.NS - Gold ETF","SILVERBEES.NS - Silver ETF",
+            "NIFTYBEES.NS - Nifty ETF","BANKBEES.NS - Bank ETF",
+            "ITBEES.NS - IT ETF"
         ]
     }
 
@@ -97,17 +113,20 @@ with st.sidebar:
     custom = st.text_input("Custom Ticker")
     analyze = st.button("Analyze")
 
-# ---------------- HELPER ----------------
-def extract(text, start, end=None):
+
+def clean_text(text):
+    return re.sub(r"\*\*", "", text).strip()
+
+def extract_section(text, start, end=None):
     try:
         if end:
-            pattern = rf"{start}\*\*(.*?){end}\*\*"
+            pattern = rf"{start}[:\-]?(.*?){end}"
         else:
-            pattern = rf"{start}\*\*(.*)"
-        match = re.search(pattern, text, re.S)
-        return match.group(1).strip() if match else ""
+            pattern = rf"{start}[:\-]?(.*)"
+        match = re.search(pattern, text, re.S | re.I)
+        return clean_text(match.group(1)) if match else "No data available"
     except:
-        return ""
+        return "No data available"
 
 def format_output(result):
     text = str(result.get("insight", ""))
@@ -119,13 +138,12 @@ def format_output(result):
         "confidence": int(result.get("confidence", 70)),
         "reasons": result.get("reasons", []),
         "insight": {
-            "interpretation": extract(text, "Financial Interpretation", "Short-term Outlook"),
-            "outlook": extract(text, "Short-term Outlook", "Investor Takeaway"),
-            "takeaway": extract(text, "Investor Takeaway")
+            "interpretation": extract_section(text, "Financial Interpretation", "Short-term Outlook"),
+            "outlook": extract_section(text, "Short-term Outlook", "Investor Takeaway"),
+            "takeaway": extract_section(text, "Investor Takeaway")
         }
     }
 
-# ---------------- MAIN ----------------
 if not analyze:
     st.info("Select asset and analyze")
 
@@ -141,7 +159,7 @@ if analyze:
 
         market = result["market"]
 
-        # ---------------- METRICS ----------------
+       
         st.subheader("Market Overview")
         c1, c2, c3, c4 = st.columns(4)
 
@@ -165,7 +183,6 @@ if analyze:
         st.caption("Data Source: Yahoo Finance | Prices may be delayed")
         st.divider()
 
-        # ---------------- CHART ----------------
         st.subheader("Price Chart")
         data = yf.download(query, period="3mo")
 
@@ -187,7 +204,7 @@ if analyze:
         else:
             st.warning("No chart data available")
 
-        # ---------------- PREDICTION ----------------
+       
         st.subheader("Prediction")
         col1, col2 = st.columns([2,1])
 
@@ -203,22 +220,22 @@ if analyze:
             )
             st.progress(conf/100)
 
-        # ---------------- REASONS ----------------
+        
         st.subheader("Signal Reasoning")
         for r in result["reasons"]:
             icon = "📉" if "down" in r.lower() else "📈"
             st.markdown(f"<div class='reason-box'>{icon} {r}</div>", unsafe_allow_html=True)
 
-        # ---------------- INSIGHTS ----------------
+        
         st.subheader("AI Insights")
 
-        with st.expander("Interpretation", True):
+        with st.expander("Financial Interpretation", True):
             st.markdown(f"<div class='glass'>{result['insight']['interpretation']}</div>", unsafe_allow_html=True)
 
         with st.expander("Short-term Outlook"):
             st.markdown(f"<div class='glass'>{result['insight']['outlook']}</div>", unsafe_allow_html=True)
 
-        with st.expander("Takeaway"):
+        with st.expander("Investor Takeaway"):
             st.markdown(f"<div class='glass'>{result['insight']['takeaway']}</div>", unsafe_allow_html=True)
 
     except Exception as e:
