@@ -4,106 +4,91 @@ import plotly.graph_objects as go
 import yfinance as yf
 import re
 
+# ---------------- PAGE CONFIG ----------------
 st.set_page_config(page_title="AlphaMind AI", layout="wide")
 
-def clean_output(text):
-    text = re.sub(r"\*\*\d+\.", "", text)
-    text = re.sub(r"\*\*", "", text)
-    return text.strip()
-
+# ---------------- PREMIUM UI ----------------
 st.markdown("""
 <style>
-html, body { font-family: 'Inter', sans-serif; }
-
-.main {
+body {
     background: linear-gradient(135deg, #020617, #0f172a);
     color: #e2e8f0;
+    font-family: 'Inter', 'Segoe UI', sans-serif;
 }
 
-.sidebar-title {
-    font-size: 24px;
-    font-weight: 700;
+.main-title {
+    text-align:center;
+    font-size:40px;
+    font-weight:700;
+    color:#c084fc;
 }
 
-.metric {
-    text-align: center;
-    padding: 12px;
-    border-radius: 10px;
-    background: rgba(30,41,59,0.5);
+.sub-title {
+    text-align:center;
+    color:#94a3b8;
+    font-size:15px;
+    margin-bottom:25px;
 }
 
-.card {
+.glass {
     background: rgba(30,41,59,0.6);
-    padding: 18px;
-    border-radius: 12px;
+    padding:20px;
+    border-radius:16px;
+    border:1px solid rgba(148,163,184,0.15);
 }
 
-.insight-box {
-    padding: 14px;
-    margin: 10px 0;
-    border-radius: 10px;
+.metric-box {
+    text-align:center;
+    padding:16px;
+    border-radius:14px;
     background: rgba(30,41,59,0.5);
-    border: 1px solid #334155;
-    transition: all 0.25s ease;
 }
 
-.insight-box:hover {
-    background: rgba(99,102,241,0.15);
-    border-color: #6366f1;
-    transform: translateY(-2px);
+.buy{color:#22c55e;} 
+.sell{color:#ef4444;} 
+.hold{color:#facc15;}
+
+.reason-box {
+    padding:12px;
+    margin:6px 0;
+    border-radius:10px;
+    background: rgba(148,163,184,0.08);
+    border-left:3px solid #c084fc;
+    transition:0.3s;
+}
+
+.reason-box:hover {
+    transform: translateX(6px);
+    background: rgba(192,132,252,0.15);
 }
 </style>
 """, unsafe_allow_html=True)
 
-st.markdown("<h1 style='text-align:center;'>AlphaMind AI</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align:center;color:#94a3b8;'>AI-powered financial intelligence platform</p>", unsafe_allow_html=True)
+# ---------------- HEADER ----------------
+st.markdown('<div class="main-title">AlphaMind AI</div>', unsafe_allow_html=True)
+st.markdown('<div class="sub-title">Intelligent Financial Insight System</div>', unsafe_allow_html=True)
 
+# ---------------- SIDEBAR ----------------
 with st.sidebar:
-    st.markdown("<div class='sidebar-title'>Control Panel</div>", unsafe_allow_html=True)
+    st.title("Control Panel")
 
     assets = {
-
-        "US Stocks": [
-            "Apple (AAPL)","Microsoft (MSFT)","Google (GOOGL)","Amazon (AMZN)",
-            "Meta (META)","Tesla (TSLA)","Nvidia (NVDA)","Netflix (NFLX)",
-            "AMD (AMD)","Intel (INTC)","Oracle (ORCL)","IBM (IBM)",
-            "Cisco (CSCO)","Adobe (ADBE)","Salesforce (CRM)",
-            "Uber (UBER)","Lyft (LYFT)","PayPal (PYPL)",
-            "Shopify (SHOP)","Snap (SNAP)"
+        "Stocks": [
+            "AAPL - Apple","TSLA - Tesla","NVDA - Nvidia","MSFT - Microsoft",
+            "GOOGL - Google","AMZN - Amazon","META - Meta","NFLX - Netflix",
+            "RELIANCE.NS - Reliance","TCS.NS - TCS","INFY.NS - Infosys"
         ],
-
-        "Indian Stocks": [
-            "Reliance (RELIANCE.NS)","TCS (TCS.NS)","Infosys (INFY.NS)",
-            "HDFC Bank (HDFCBANK.NS)","ICICI Bank (ICICIBANK.NS)",
-            "SBI (SBIN.NS)","L&T (LT.NS)","Axis Bank (AXISBANK.NS)",
-            "Kotak Bank (KOTAKBANK.NS)","ITC (ITC.NS)",
-            "Airtel (BHARTIARTL.NS)","Asian Paints (ASIANPAINT.NS)",
-            "Maruti (MARUTI.NS)","Sun Pharma (SUNPHARMA.NS)","Wipro (WIPRO.NS)"
-        ],
-
-        "US ETFs": [
-            "S&P 500 ETF (SPY)","Nasdaq ETF (QQQ)","Total Market ETF (VTI)",
-            "Vanguard ETF (VOO)","Dow ETF (DIA)",
-            "Russell ETF (IWM)","Tech ETF (XLK)",
-            "Finance ETF (XLF)","ARK ETF (ARKK)","Dividend ETF (SCHD)"
-        ],
-
-        "Indian ETFs": [
-            "Nifty ETF (NIFTYBEES.NS)",
-            "Bank ETF (BANKBEES.NS)",
-            "Gold ETF (GOLDBEES.NS)",
-            "Silver ETF (SILVERBEES.NS)",
-            "IT ETF (ITBEES.NS)"
-        ],
-
         "Crypto": [
-            "Bitcoin (BTC-USD)","Ethereum (ETH-USD)",
-            "Solana (SOL-USD)","BNB (BNB-USD)","XRP (XRP-USD)"
+            "BTC-USD - Bitcoin","ETH-USD - Ethereum","SOL-USD - Solana",
+            "XRP-USD - XRP","ADA-USD - Cardano"
         ],
-
         "Indices": [
-            "S&P 500 (^GSPC)","Dow Jones (^DJI)",
-            "Nasdaq (^IXIC)","Nifty 50 (^NSEI)","Sensex (^BSESN)"
+            "^GSPC - S&P 500","^IXIC - Nasdaq","^DJI - Dow Jones",
+            "^NSEI - Nifty 50","^BSESN - Sensex"
+        ],
+        "ETFs": [
+            "SPY - S&P500 ETF","QQQ - Nasdaq ETF",
+            "GOLDBEES.NS - Gold ETF","SILVERBEES.NS - Silver ETF"
         ]
     }
 
@@ -112,84 +97,129 @@ with st.sidebar:
     custom = st.text_input("Custom Ticker")
     analyze = st.button("Analyze")
 
-def extract_ticker(asset):
-    return asset.split("(")[-1].replace(")", "")
+# ---------------- HELPER ----------------
+def extract(text, start, end=None):
+    try:
+        if end:
+            pattern = rf"{start}\*\*(.*?){end}\*\*"
+        else:
+            pattern = rf"{start}\*\*(.*)"
+        match = re.search(pattern, text, re.S)
+        return match.group(1).strip() if match else ""
+    except:
+        return ""
 
+def format_output(result):
+    text = str(result.get("insight", ""))
+
+    return {
+        "market": result.get("market_data", {}),
+        "prediction": result.get("prediction", ""),
+        "signal": result.get("signal", "HOLD"),
+        "confidence": int(result.get("confidence", 70)),
+        "reasons": result.get("reasons", []),
+        "insight": {
+            "interpretation": extract(text, "Financial Interpretation", "Short-term Outlook"),
+            "outlook": extract(text, "Short-term Outlook", "Investor Takeaway"),
+            "takeaway": extract(text, "Investor Takeaway")
+        }
+    }
+
+# ---------------- MAIN ----------------
 if not analyze:
-    st.info("Select asset and run analysis")
+    st.info("Select asset and analyze")
 
 if analyze:
 
-    query = custom.strip().upper() if custom else extract_ticker(selected_asset)
+    query = custom if custom else selected_asset.split(" - ")[0]
 
-    with st.spinner("Running AI analysis..."):
-        graph = build_graph()
-        raw = graph.invoke({"query": query})
+    try:
+        with st.spinner("Running AI..."):
+            graph = build_graph()
+            raw = graph.invoke({"query": query})
+            result = format_output(raw)
 
-    prediction = clean_output(raw.get("prediction",""))
-    reasons = raw.get("reasons",[])
-    insight = clean_output(raw.get("insight",""))
+        market = result["market"]
 
-    st.subheader("Price Chart")
+        # ---------------- METRICS ----------------
+        st.subheader("Market Overview")
+        c1, c2, c3, c4 = st.columns(4)
 
-    data = yf.download(query, period="3mo", interval="1d", progress=False)
-    data = data.dropna()
+        def metric(title, val, cls=""):
+            st.markdown(
+                f"<div class='metric-box'><div>{title}</div><div class='{cls}'>{val}</div></div>",
+                unsafe_allow_html=True
+            )
 
-    if len(data) < 5:
-        data = yf.download(query, period="6mo", interval="1d", progress=False)
-        data = data.dropna()
+        price = market.get("price", 0)
+        usd_to_inr = 83
+        price_display = f"$ {price} | ₹ {round(price*usd_to_inr,2)}"
 
-    if len(data) < 5:
-        st.error("Unable to fetch sufficient data")
-    else:
-        fig = go.Figure()
+        with c1: metric("Price", price_display)
+        with c2: metric("Change", f"{market.get('change','N/A')}%")
+        with c3: metric("Trend", market.get("trend","N/A"))
+        with c4:
+            cls = "buy" if result["signal"]=="BUY" else "sell" if result["signal"]=="SELL" else "hold"
+            metric("Signal", result["signal"], cls)
 
-        fig.add_trace(go.Scatter(
-            x=data.index,
-            y=data["Close"],
-            mode="lines",
-            line=dict(width=3)
-        ))
+        st.caption("Data Source: Yahoo Finance | Prices may be delayed")
+        st.divider()
 
-        fig.update_layout(
-            template="plotly_dark",
-            hovermode="x unified"
-        )
+        # ---------------- CHART ----------------
+        st.subheader("Price Chart")
+        data = yf.download(query, period="3mo")
 
-        st.plotly_chart(fig, use_container_width=True)
+        if not data.empty:
+            data['MA20'] = data['Close'].rolling(20).mean()
 
-    st.markdown("---")
+            fig = go.Figure()
+            fig.add_trace(go.Candlestick(
+                x=data.index,
+                open=data['Open'],
+                high=data['High'],
+                low=data['Low'],
+                close=data['Close']
+            ))
+            fig.add_trace(go.Scatter(x=data.index, y=data['MA20'], name="MA20"))
 
-    st.subheader("Prediction")
-    st.markdown(f"<div class='card'>{prediction}</div>", unsafe_allow_html=True)
+            fig.update_layout(template="plotly_dark", height=500)
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.warning("No chart data available")
 
-    st.markdown("---")
+        # ---------------- PREDICTION ----------------
+        st.subheader("Prediction")
+        col1, col2 = st.columns([2,1])
 
-    st.subheader("Signal Reasoning")
+        with col1:
+            st.markdown(f"<div class='glass'>{result['prediction']}</div>", unsafe_allow_html=True)
 
-    for i, r in enumerate(reasons, 1):
-        st.markdown(
-            f"<div class='insight-box'><b>Insight {i}</b><br>{clean_output(r)}</div>",
-            unsafe_allow_html=True
-        )
+        with col2:
+            conf = result['confidence']
+            color = "#22c55e" if conf>75 else "#facc15" if conf>50 else "#ef4444"
+            st.markdown(
+                f"<div class='glass'><div>Confidence</div><div style='font-size:30px;color:{color}'>{conf}%</div></div>",
+                unsafe_allow_html=True
+            )
+            st.progress(conf/100)
 
-    st.markdown("---")
+        # ---------------- REASONS ----------------
+        st.subheader("Signal Reasoning")
+        for r in result["reasons"]:
+            icon = "📉" if "down" in r.lower() else "📈"
+            st.markdown(f"<div class='reason-box'>{icon} {r}</div>", unsafe_allow_html=True)
 
-    st.subheader("AI Insights")
+        # ---------------- INSIGHTS ----------------
+        st.subheader("AI Insights")
 
-    sentences = [s.strip() for s in insight.split(".") if s.strip()]
+        with st.expander("Interpretation", True):
+            st.markdown(f"<div class='glass'>{result['insight']['interpretation']}</div>", unsafe_allow_html=True)
 
-    financial = sentences[0] if len(sentences) > 0 else "Market shows directional movement."
-    outlook = sentences[1] if len(sentences) > 1 else "Short-term trend likely to continue."
-    takeaway = ". ".join(sentences[2:]) if len(sentences) > 2 else "Adopt a balanced strategy."
+        with st.expander("Short-term Outlook"):
+            st.markdown(f"<div class='glass'>{result['insight']['outlook']}</div>", unsafe_allow_html=True)
 
-    with st.expander("Financial Interpretation"):
-        st.write(financial)
+        with st.expander("Takeaway"):
+            st.markdown(f"<div class='glass'>{result['insight']['takeaway']}</div>", unsafe_allow_html=True)
 
-    with st.expander("Short-term Outlook"):
-        st.write(outlook)
-
-    with st.expander("Investor Takeaway"):
-        st.write(takeaway)
-
-    st.caption("Source: Yahoo Finance | Prices may be delayed")
+    except Exception as e:
+        st.error(f"Something went wrong: {str(e)}")
