@@ -8,7 +8,7 @@ st.set_page_config(page_title="AlphaMind AI", layout="wide")
 
 def clean_output(text):
     text = re.sub(r"\*\*\d+\.", "", text)
-    text = re.sub(r"\*\*", "", text)  # remove stray **
+    text = re.sub(r"\*\*", "", text)
     return text.strip()
 
 st.markdown("""
@@ -92,12 +92,19 @@ section[data-testid="stSidebar"] {
 .badge-sell { background:#3f0f0f; color:#ef4444; }
 .badge-hold { background:#3f3f0f; color:#facc15; }
 
-.reason {
-    padding: 10px;
-    margin: 6px 0;
-    border-radius: 8px;
-    background: rgba(148,163,184,0.08);
-    border-left: 3px solid #c084fc;
+.insight-box {
+    padding: 14px;
+    margin: 10px 0;
+    border-radius: 10px;
+    background: rgba(30,41,59,0.5);
+    border: 1px solid #334155;
+    transition: all 0.3s ease;
+}
+
+.insight-box:hover {
+    background: rgba(99,102,241,0.15);
+    border-color: #6366f1;
+    transform: translateY(-2px);
 }
 </style>
 """, unsafe_allow_html=True)
@@ -195,31 +202,35 @@ if analyze:
 
     st.markdown("---")
 
+    # FIXED GRAPH
     st.subheader("Price Chart")
-    data = yf.download(query, period="3mo")
+    data = yf.download(query, period="3mo", interval="1d")
 
     if not data.empty:
+        data = data.reset_index()
+        data["Date"] = data["Date"].dt.strftime("%Y-%m-%d")
+
         fig = go.Figure()
 
         fig.add_trace(go.Scatter(
-            x=data.index,
+            x=data["Date"],
             y=data["Close"],
-            mode="lines",
-            name="Price",
+            mode="lines+markers",
             line=dict(width=3),
+            marker=dict(size=5),
             hovertemplate="Date: %{x}<br>Price: %{y}<extra></extra>"
         ))
 
         fig.update_layout(
             template="plotly_dark",
             hovermode="x unified",
-            margin=dict(l=10, r=10, t=30, b=10),
-            transition=dict(duration=400)
+            xaxis=dict(type="category"),
+            margin=dict(l=10, r=10, t=30, b=10)
         )
 
         st.plotly_chart(fig, use_container_width=True)
     else:
-        st.warning("No data available for this asset")
+        st.warning("No data available")
 
     st.markdown("---")
 
@@ -236,27 +247,52 @@ if analyze:
 
     st.markdown("---")
 
+    # HOVER INSIGHTS
     st.subheader("Signal Reasoning")
     for i, r in enumerate(result["reasons"], 1):
-        with st.expander(f"Insight {i}"):
-            st.write(clean_output(r))
+        st.markdown(
+            f"<div class='insight-box'><b>Insight {i}</b><br>{clean_output(r)}</div>",
+            unsafe_allow_html=True
+        )
 
     st.markdown("---")
 
+    # CLEAN 3 DROPDOWNS
     st.subheader("AI Insights")
 
     insight_text = clean_output(result["insight"])
-    sections = insight_text.split("\n\n")
 
-    titles = [
-        "Financial Interpretation",
-        "Short-term Outlook",
-        "Investor Takeaway"
-    ]
+    financial, outlook, takeaway = "", "", ""
+    lines = insight_text.split("\n")
 
-    for i, section in enumerate(sections):
-        title = titles[i] if i < len(titles) else f"Insight {i+1}"
-        with st.expander(title):
-            st.write(section.strip())
+    current = None
+    for line in lines:
+        l = line.lower()
 
-    st.caption("Source: Yahoo Finance | Prices may be delayed | For educational use only")
+        if "financial" in l:
+            current = "f"; continue
+        elif "short" in l:
+            current = "o"; continue
+        elif "takeaway" in l or "investor" in l:
+            current = "t"; continue
+
+        if current == "f": financial += line + " "
+        elif current == "o": outlook += line + " "
+        elif current == "t": takeaway += line + " "
+
+    if not financial and not outlook and not takeaway:
+        parts = insight_text.split(". ")
+        if len(parts) > 0: financial = parts[0]
+        if len(parts) > 1: outlook = parts[1]
+        if len(parts) > 2: takeaway = parts[2]
+
+    with st.expander("Financial Interpretation"):
+        st.write(financial.strip())
+
+    with st.expander("Short-term Outlook"):
+        st.write(outlook.strip())
+
+    with st.expander("Investor Takeaway"):
+        st.write(takeaway.strip())
+
+    st.caption("Source: Yahoo Finance | Prices may be delayed")
