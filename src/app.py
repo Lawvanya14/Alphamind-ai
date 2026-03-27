@@ -44,7 +44,7 @@ html, body { font-family: 'Inter', sans-serif; }
     border-radius: 10px;
     background: rgba(30,41,59,0.5);
     border: 1px solid #334155;
-    transition: all 0.3s ease;
+    transition: all 0.25s ease;
 }
 
 .insight-box:hover {
@@ -83,10 +83,9 @@ with st.sidebar:
 
         "US ETFs": [
             "S&P 500 ETF (SPY)","Nasdaq ETF (QQQ)","Total Market ETF (VTI)",
-            "Vanguard S&P ETF (VOO)","Dow Jones ETF (DIA)",
-            "Russell 2000 ETF (IWM)","Tech ETF (XLK)",
-            "Financial ETF (XLF)","ARK Innovation ETF (ARKK)",
-            "Dividend ETF (SCHD)"
+            "Vanguard ETF (VOO)","Dow ETF (DIA)",
+            "Russell ETF (IWM)","Tech ETF (XLK)",
+            "Finance ETF (XLF)","ARK ETF (ARKK)","Dividend ETF (SCHD)"
         ],
 
         "Indian ETFs": [
@@ -99,14 +98,12 @@ with st.sidebar:
 
         "Crypto": [
             "Bitcoin (BTC-USD)","Ethereum (ETH-USD)",
-            "Solana (SOL-USD)","BNB (BNB-USD)",
-            "XRP (XRP-USD)"
+            "Solana (SOL-USD)","BNB (BNB-USD)","XRP (XRP-USD)"
         ],
 
         "Indices": [
             "S&P 500 (^GSPC)","Dow Jones (^DJI)",
-            "Nasdaq (^IXIC)","Nifty 50 (^NSEI)",
-            "Sensex (^BSESN)"
+            "Nasdaq (^IXIC)","Nifty 50 (^NSEI)","Sensex (^BSESN)"
         ]
     }
 
@@ -115,55 +112,23 @@ with st.sidebar:
     custom = st.text_input("Custom Ticker")
     analyze = st.button("Analyze")
 
-def format_output(result):
-    return {
-        "market": result.get("market_data", {}),
-        "prediction": clean_output(result.get("prediction", "")),
-        "signal": result.get("signal", "HOLD"),
-        "confidence": int(result.get("confidence", 70)),
-        "reasons": result.get("reasons", []),
-        "insight": result.get("insight", "")
-    }
+def extract_ticker(asset):
+    return asset.split("(")[-1].replace(")", "")
 
 if not analyze:
     st.info("Select asset and run analysis")
 
 if analyze:
 
-    query = custom.strip().upper() if custom else selected_asset.split("(")[-1].replace(")", "")
+    query = custom.strip().upper() if custom else extract_ticker(selected_asset)
 
     with st.spinner("Running AI analysis..."):
         graph = build_graph()
         raw = graph.invoke({"query": query})
-        result = format_output(raw)
 
-    market = result["market"]
-
-    st.subheader("Market Overview")
-    c1, c2, c3, c4 = st.columns(4)
-
-    def metric(title, val):
-        st.markdown(f"<div class='metric'><div>{title}</div><b>{val}</b></div>", unsafe_allow_html=True)
-
-    price = market.get("price", "N/A")
-
-    metric_map = {
-        ".NS": f"₹ {price}",
-        "-USD": f"$ {price}",
-        "^": f"{price}"
-    }
-
-    price_display = f"$ {price}"
-    for k in metric_map:
-        if k in query:
-            price_display = metric_map[k]
-
-    with c1: metric("Price", price_display)
-    with c2: metric("Change", f"{market.get('change','N/A')}%")
-    with c3: metric("Trend", market.get("trend","N/A"))
-    with c4: metric("Signal", result["signal"])
-
-    st.markdown("---")
+    prediction = clean_output(raw.get("prediction",""))
+    reasons = raw.get("reasons",[])
+    insight = clean_output(raw.get("insight",""))
 
     st.subheader("Price Chart")
 
@@ -175,28 +140,34 @@ if analyze:
         data = data.dropna()
 
     if len(data) < 5:
-        st.warning("Not enough data to render chart")
+        st.error("Unable to fetch sufficient data")
     else:
         fig = go.Figure()
+
         fig.add_trace(go.Scatter(
             x=data.index,
             y=data["Close"],
             mode="lines",
             line=dict(width=3)
         ))
-        fig.update_layout(template="plotly_dark", hovermode="x unified")
+
+        fig.update_layout(
+            template="plotly_dark",
+            hovermode="x unified"
+        )
+
         st.plotly_chart(fig, use_container_width=True)
 
     st.markdown("---")
 
     st.subheader("Prediction")
-    st.markdown(f"<div class='card'>{result['prediction']}</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='card'>{prediction}</div>", unsafe_allow_html=True)
 
     st.markdown("---")
 
     st.subheader("Signal Reasoning")
 
-    for i, r in enumerate(result["reasons"], 1):
+    for i, r in enumerate(reasons, 1):
         st.markdown(
             f"<div class='insight-box'><b>Insight {i}</b><br>{clean_output(r)}</div>",
             unsafe_allow_html=True
@@ -206,21 +177,11 @@ if analyze:
 
     st.subheader("AI Insights")
 
-    insight_text = clean_output(result["insight"])
-    parts = insight_text.split(". ")
+    sentences = [s.strip() for s in insight.split(".") if s.strip()]
 
-    financial = parts[0] if len(parts) > 0 else ""
-    outlook = parts[1] if len(parts) > 1 else ""
-    takeaway = ". ".join(parts[2:]) if len(parts) > 2 else ""
-
-    if not financial.strip():
-        financial = "Market trend suggests moderate movement based on current data."
-
-    if not outlook.strip():
-        outlook = "Short-term outlook remains stable with possible minor fluctuations."
-
-    if not takeaway.strip():
-        takeaway = "Investors should adopt a balanced strategy and monitor changes."
+    financial = sentences[0] if len(sentences) > 0 else "Market shows directional movement."
+    outlook = sentences[1] if len(sentences) > 1 else "Short-term trend likely to continue."
+    takeaway = ". ".join(sentences[2:]) if len(sentences) > 2 else "Adopt a balanced strategy."
 
     with st.expander("Financial Interpretation"):
         st.write(financial)
