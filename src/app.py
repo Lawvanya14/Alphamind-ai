@@ -7,7 +7,9 @@ import re
 st.set_page_config(page_title="AlphaMind AI", layout="wide")
 
 def clean_output(text):
-    return re.sub(r"\*\*\d+\.", "", text).strip()
+    text = re.sub(r"\*\*\d+\.", "", text)
+    text = re.sub(r"\*\*", "", text)  # remove stray **
+    return text.strip()
 
 st.markdown("""
 <style>
@@ -79,6 +81,17 @@ section[data-testid="stSidebar"] {
 .sell { color:#ef4444; }
 .hold { color:#facc15; }
 
+.badge {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-weight: 600;
+    display: inline-block;
+}
+
+.badge-buy { background:#022c22; color:#22c55e; }
+.badge-sell { background:#3f0f0f; color:#ef4444; }
+.badge-hold { background:#3f3f0f; color:#facc15; }
+
 .reason {
     padding: 10px;
     margin: 6px 0;
@@ -90,7 +103,7 @@ section[data-testid="stSidebar"] {
 """, unsafe_allow_html=True)
 
 st.markdown('<div class="title">AlphaMind AI</div>', unsafe_allow_html=True)
-st.markdown('<div class="subtitle">Intelligent Financial Insight System</div>', unsafe_allow_html=True)
+st.markdown('<div class="subtitle">AI-powered financial intelligence using market data, sentiment, and signals</div>', unsafe_allow_html=True)
 
 with st.sidebar:
     st.markdown('<div class="sidebar-title">Control Panel</div>', unsafe_allow_html=True)
@@ -100,12 +113,10 @@ with st.sidebar:
             "AAPL - Apple","MSFT - Microsoft","GOOGL - Google","AMZN - Amazon",
             "META - Meta","TSLA - Tesla","NVDA - Nvidia"
         ],
-
         "Indian Stocks": [
             "RELIANCE.NS - Reliance","TCS.NS - TCS","INFY.NS - Infosys",
             "HDFCBANK.NS - HDFC Bank","ICICIBANK.NS - ICICI Bank"
         ],
-
         "Indian ETFs": [
             "NIFTYBEES.NS - Nippon Nifty ETF",
             "BANKBEES.NS - Bank ETF",
@@ -113,16 +124,13 @@ with st.sidebar:
             "SILVERBEES.NS - Silver ETF",
             "ITBEES.NS - IT ETF"
         ],
-
         "Global ETFs": [
             "SPY - S&P 500 ETF","QQQ - Nasdaq ETF",
             "GLD - Gold ETF","SLV - Silver ETF"
         ],
-
         "Crypto": [
             "BTC-USD - Bitcoin","ETH-USD - Ethereum","SOL-USD - Solana"
         ],
-
         "Indices": [
             "^GSPC - S&P 500","^NSEI - Nifty 50"
         ]
@@ -151,7 +159,7 @@ if analyze:
 
     query = custom.strip().upper() if custom else selected_asset.split(" - ")[0]
 
-    with st.spinner("Running analysis..."):
+    with st.spinner("Analyzing market intelligence..."):
         graph = build_graph()
         raw = graph.invoke({"query": query})
         result = format_output(raw)
@@ -178,24 +186,42 @@ if analyze:
     with c1: metric("Price", price_display)
     with c2: metric("Change", f"{market.get('change','N/A')}%")
     with c3: metric("Trend", market.get("trend","N/A"))
+
     with c4:
-        cls = "buy" if result["signal"]=="BUY" else "sell" if result["signal"]=="SELL" else "hold"
-        metric("Signal", result["signal"], cls)
+        signal = result["signal"]
+        cls = "buy" if signal=="BUY" else "sell" if signal=="SELL" else "hold"
+        badge_class = f"badge-{cls}"
+        st.markdown(f"<div class='metric'><div>Signal</div><div class='badge {badge_class}'>{signal}</div></div>", unsafe_allow_html=True)
+
+    st.markdown("---")
 
     st.subheader("Price Chart")
     data = yf.download(query, period="3mo")
 
     if not data.empty:
         fig = go.Figure()
-        fig.add_trace(go.Candlestick(
+
+        fig.add_trace(go.Scatter(
             x=data.index,
-            open=data['Open'],
-            high=data['High'],
-            low=data['Low'],
-            close=data['Close']
+            y=data["Close"],
+            mode="lines",
+            name="Price",
+            line=dict(width=3),
+            hovertemplate="Date: %{x}<br>Price: %{y}<extra></extra>"
         ))
-        fig.update_layout(template="plotly_dark")
+
+        fig.update_layout(
+            template="plotly_dark",
+            hovermode="x unified",
+            margin=dict(l=10, r=10, t=30, b=10),
+            transition=dict(duration=400)
+        )
+
         st.plotly_chart(fig, use_container_width=True)
+    else:
+        st.warning("No data available for this asset")
+
+    st.markdown("---")
 
     st.subheader("Prediction")
     col1, col2 = st.columns([2,1])
@@ -208,12 +234,29 @@ if analyze:
         st.markdown(f"<div class='card'><b>Confidence</b><br><h2>{conf}%</h2></div>", unsafe_allow_html=True)
         st.progress(conf/100)
 
-    st.subheader("Reasoning")
-    for r in result["reasons"]:
-        st.markdown(f"<div class='reason'>{clean_output(r)}</div>", unsafe_allow_html=True)
+    st.markdown("---")
+
+    st.subheader("Signal Reasoning")
+    for i, r in enumerate(result["reasons"], 1):
+        with st.expander(f"Insight {i}"):
+            st.write(clean_output(r))
+
+    st.markdown("---")
 
     st.subheader("AI Insights")
-    st.markdown(f"<div class='card'>{clean_output(result['insight'])}</div>", unsafe_allow_html=True)
+
+    insight_text = clean_output(result["insight"])
+    sections = insight_text.split("\n\n")
+
+    titles = [
+        "Financial Interpretation",
+        "Short-term Outlook",
+        "Investor Takeaway"
+    ]
+
+    for i, section in enumerate(sections):
+        title = titles[i] if i < len(titles) else f"Insight {i+1}"
+        with st.expander(title):
+            st.write(section.strip())
 
     st.caption("Source: Yahoo Finance | Prices may be delayed | For educational use only")
-
