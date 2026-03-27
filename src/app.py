@@ -115,7 +115,10 @@ with st.sidebar:
 
 
 def clean_text(text):
-    return re.sub(r"\*\*", "", text).strip()
+    text = re.sub(r"\*\*", "", text) 
+    text = re.sub(r"\n?\s*\d+\.\s*$", "", text) 
+    text = re.sub(r"\n\s*\d+\.\s*", "\n", text)  
+    return text.strip()
 
 def extract_section(text, start, end=None):
     try:
